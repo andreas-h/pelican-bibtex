@@ -39,7 +39,7 @@ def add_publications(generator):
     """
     # check if settings are provided via pelicanconf.py
     settings_present = False
-    for s in ['PUBLICATIONS_SRC','PRESENTATIONS_SRC', 'POSTERS_SRC']:
+    for s in ['PUBLICATIONS_SRC', 'PRESENTATIONS_SRC', 'POSTERS_SRC']:
         if s in generator.settings:
             settings_present = True
     if not settings_present:
@@ -59,8 +59,8 @@ def add_publications(generator):
         logger.warn('`pelican_bibtex` failed to load dependency `pybtex`')
         return
 
-    for s, c in zip(['PUBLICATIONS_SRC','PRESENTATIONS_SRC', 'POSTERS_SRC'], 
-                    ['publications','presentations', 'posters']):
+    for s, c in zip(['PUBLICATIONS_SRC', 'PRESENTATIONS_SRC', 'POSTERS_SRC'],
+                    ['publications', 'presentations', 'posters']):
         if s not in generator.settings:
             continue
         refs_file = generator.settings[s]
@@ -77,8 +77,14 @@ def add_publications(generator):
         # format entries
         plain_style = plain.Style()
         html_backend = html.Backend()
-        formatted_entries = plain_style.format_entries(bibdata_all.entries.values())
+        all_entries = bibdata_all.entries.values()
 
+        # remove URL field if DOI is present
+        for entry in all_entries:
+            if "doi" in entry.fields.keys():
+                entry.fields._dict["url"] = ""
+
+        formatted_entries = plain_style.format_entries(all_entries)
         for formatted_entry in formatted_entries:
             key = formatted_entry.key
             entry = bibdata_all.entries[key]
@@ -90,7 +96,8 @@ def add_publications(generator):
             # Zotero exports a 'file' field, which contains the 'Zotero' and
             # 'Filesystem' filenames, seperated by ':'
             filename = entry.fields['file'].split(':')[0]
-            if os.access(os.path.join('content', 'download', filename), os.R_OK):
+            if os.access(os.path.join('content', 'download', filename),
+                         os.R_OK):
                 pdf = os.path.join('download', filename)
             else:
                 pdf = None
@@ -100,8 +107,10 @@ def add_publications(generator):
             bibdata_this = BibliographyData(entries={key: entry})
             Writer().write_stream(bibdata_this, bib_buf)
             text = formatted_entry.text.render(html_backend)
-            doi = entry.fields.get('doi') if 'doi' in entry.fields.keys() else ""
-            url = entry.fields.get('url') if 'url' in entry.fields.keys() else ""
+            doi = (entry.fields.get('doi')
+                   if 'doi' in entry.fields.keys() else "")
+            url = (entry.fields.get('url')
+                   if 'url' in entry.fields.keys() else "")
 
             # prettify entries
             # remove BibTeX's {}
@@ -115,6 +124,8 @@ def add_publications(generator):
             text = text.replace("CO2", "CO<sub>2</sub>")
             # for posters and presentations, make for nicer printing
             text = text.replace("In <em>", "Presented at <em>")
+            # remove empty URL link
+            text = text.replace("<a href=\"\">URL:</a>, ", "")
 
             publications.append((key,
                                  year,
