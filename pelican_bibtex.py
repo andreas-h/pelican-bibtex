@@ -91,15 +91,18 @@ def add_publications(generator):
             year = entry.fields.get('year')
             slides = entry.fields.pop('slides', None)
             poster = entry.fields.pop('poster', None)
-            
-            # add PDF link is file is present
+
+            # add PDF link if file is present
             # Zotero exports a 'file' field, which contains the 'Zotero' and
             # 'Filesystem' filenames, seperated by ':'
-            filename = entry.fields['file'].split(':')[0]
-            if os.access(os.path.join('content', 'download', filename),
-                         os.R_OK):
-                pdf = os.path.join('download', filename)
-            else:
+            try:
+                filename = entry.fields['file'].split(':')[0]
+                if os.access(os.path.join('content', 'download', filename),
+                             os.R_OK):
+                    pdf = os.path.join('download', filename)
+                else:
+                    pdf = None
+            except KeyError:
                 pdf = None
 
             #render the bibtex string for the entry
